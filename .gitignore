@@ -227,4 +227,5 @@ fabric.properties
 hs_err_pid*
 replay_pid*
 
-# End of https://www.toptal.com/developers/gitignore/api/eclipse,intellij,java
+./*/.history
+./*/*/.history
