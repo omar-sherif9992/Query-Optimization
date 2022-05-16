@@ -18,7 +18,7 @@ where r.bid = 103 );
 
 * 582 Rows
 
-<img src="./screenshots/Query7/common/result-set-number-of-rows.png" alt="result-set-number-of-rows">
+<img src="./screenshots/Query7/common/coresult-set-number-of-rows.png" alt="result-set-number-of-rows" >
 
 #### Report
 
@@ -28,7 +28,7 @@ where r.bid = 103 );
 <img src="./screenshots/Query7/normalQuery/no-index-Graphical-explain.png" alt="no-index-Graphical" width="100px">
 <img src="./screenshots/Query7/normalQuery/no-index-Stats.png" alt="no-index-Stats" width="100px">
 
-<a href="./statistics/Query7/no-index-normal-stats.csv"> Statistics in CSV Format </a>
+<a href="./statistics/Query7/no-index-normal-stats.csv> Statistics in CSV Format</a>
 
 
 2) given query with B+ trees indices only,
