@@ -1,0 +1,1 @@
+1) given query with mixed indices (any mix of your choice).
