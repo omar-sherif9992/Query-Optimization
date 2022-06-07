@@ -1,12 +1,11 @@
 with sec as (( select *
     from section
-    where semester = 1 and year = 2019) as s inner join takes t on s.section_id =t.section_id )
+    where  year = 2019) as s inner join takes t on s.section_id =t.section_id )
 select *
 from 
   sec
-    inner join  takes t on  t.section_id = sec.section_id
-    right outer join 
-(    select *
+    right outer join
+(   select *
     from student
     where dep_name='CSEN') as s on
     s.id = sec.student_id;
@@ -15,6 +14,8 @@ union
 select null as id ,null as name, null as tot_credit ,null as department, null as advisor_id ,*
 from sec
 where semester = 2
+
+
 
 
 
