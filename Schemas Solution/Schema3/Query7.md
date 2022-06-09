@@ -2,6 +2,15 @@
 
 * Find the names of sailors who have reserved boat 103.
 
+
+
+## Note !
+  * Flags Hashjoin and HashAgg here where disabled for future after many trials and errors , I've discovered the best way to show the difference interms of the cost and to beat the Postgres Query Optimizer Algorithm to be able to show indices effect and cost differenes .
+  
+ * The Execution time was changing by 10 Ms in each Execution which is considered high and I can't take it as a measurable Metric because it was Linux (Ubuntu) Operating System performance and I took permission from Prof. Wael as do not take it as my main objective I take the Overall Cost and Compare it .
+
+
+
 ### Original Query
 
 ```
@@ -18,50 +27,128 @@ where r.bid = 103 );
 
 * 582 Rows
 
-<img src="./screenshots/Query7/normalQuery/result-set-number-of-rows.png" alt="result-set-number-of-rows" height="400px">
+<img src="./screenshots/Query7/common/result-set-number-of-rows.png" alt="result-set-number-of-rows" height="400px">
 
 #### Report
 
-1) given query without an index,
+1) given query without an index :
 
 <img src="./screenshots/Query7/common/no-index.png" alt="no-index" height="400px">
 <img src="./screenshots/Query7/normalQuery/no-index/no-index-normal-physical-plan-graphical-explain.png" alt="no-index-graphical" height="400px">
 <img src="./screenshots/Query7/normalQuery/no-index/no-index-normal-query-cost.png" alt="no-index-Stats" hright="400px">
 
 ##### Explanation :
-  * First , a Sequential Scan occured on Reserves Table to filter the reserved boats with bid 103 and it costs 0..627 rows,and read through 35000 Rows and 582 Rows are left after the filtration of the where condition.
-  * Second , a Hash Table was built on the run on r.bid of the 582 Rows and it costed 627.50...627.50 rows,this resulted with 1024 Buckets created ,and Memory Usage of 29 KB.
-  * Thirdly , a Sequential Scan occured on Sailors Table to be able to hash each row's sid to the Reserves's buckets to full inner join on the condition and it costed 00..349 rows, and it read through 19000 rows.
-  * Fourthly, a Hash Semi Join occurred to produce the result set of the condition of s.sid = r.sid , and the reason it is Hash Semi Join In the first query, only the r.sid needs to be saved from the reserves into the hash table, because that is the only data needed to implement the semi-join , it costs 634.77 ... 1040.85 rows.
-  * Execution Time : 10.462 ms
+
+   * Metrics :
+  
+      | Execution Time : 15.430 ms | Total Expected Cost : 2457.26 |
+      |----------------------------|-------------------------------|
+   
+
+
+2) given query with B+ trees indices only :
+
+<img src="./screenshots/Query7/common/b-tree.png" alt="b-tree" height="400px">
+<img src="./screenshots/Query7/normalQuery/b-tree/b-tree-normal-physical-plan-graphical-explain.png" alt="b-tree" height="400px">
+<img src="./screenshots/Query7/normalQuery/b-tree/b-tree-normal-query-cost.png" alt="b-tree" hright="400px">
+
+
+##### Explanation :
+
+   * Metrics :
+  
+      | Execution Time : 0.449 ms | Total Expected Cost : 956.28 |
+      |----------------------------|-------------------------------|
+
+* The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
+
+* The Query Planner used the B-tree index because B-Tree is O(Log n) performance with Exact Values .
+  
+* Here it showed the improvement due to for every condition of Joining in the Query the Merge Join used index scan using ZigZag algorithm .
+  
+*  The Where clause condition on the  (bid = 103) used B-tree which is more better as  (bid = 103) are repetable and sorted after each other at the leaves of the b-tree with  O(Log n) performance on all at one time .
+   
+
+3) given query with hash indices only :
+
+<img src="./screenshots/Query7/common/hash.png" alt="hash" height="400px">
+<img src="./screenshots/Query7/normalQuery/hash/hash-normal-physical-plan-graphical-explain.png" alt="hash" height="400px">
+<img src="./screenshots/Query7/normalQuery/hash/hash-normal-query-cost.png" alt="hash" hright="400px">
+
+##### Explanation :
+
+   * Metrics :
+  
+      | Execution Time : 0.993 ms | Total Expected Cost : 1159.32 |
+      |----------------------------|-------------------------------|
+
+  * The Hash helped in the performance it decreased the Execution Time and Expected Cost .
+  
+  * The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries .
+  
+  * Here it showed the improvement due to for condition of Joining in the Query the Nested Loop Semi Join using index scan using Hash based algorithm on the condition (sid=s.sid) which approximatly maded to be O(n) performance .
+     
+   * Here it showed the improvement due to for condition of (bid = 103) with performance of O(1) .
+   
+  
+
+4) given query with BRIN indices only :
+
+<img src="./screenshots/Query7/common/brin.png" alt="brin" height="400px">
+<img src="./screenshots/Query7/normalQuery/brin/brin-normal-physical-plan-graphical-explain.png" alt="brin" height="400px">
+<img src="./screenshots/Query7/normalQuery/brin/brin-normal-query-cost.png" alt="brin" hright="400px">
+
+##### Explanation :
+
+  * Metrics :
+
+      | Execution Time : 851.120 ms | Total Expected Cost : 4080651.27  |
+      |----------------------------|-------------------------------|
+
+  * Here the BRIN was not used in the original Query Plan settings  (Hashjoin and HashAgg are off) so I've made seqscan=off too.
+  
+  * The Execution Time and Expected Cost became the Worst of all .
+  
+  * This happened because the Query Optimizer didnt used it from the first place due to BRIN  Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
+
+
+5) given query with mixed indices (any mix of your choice) :
+
+<img src="./screenshots/Query7/common/mix.png" alt="mix" height="400px">
+<img src="./screenshots/Query7/normalQuery/mix/mix-normal-physical-plan-graphical-explain.png" alt="mix" height="400px">
+<img src="./screenshots/Query7/normalQuery/mix/mix-normal-query-cost.png" alt="mix" hright="400px">
+
+##### Explanation :
+
+  * Metrics :
+
+      | Execution Time : 0.845 ms | Total Expected Cost : 960.03   |
+      |--------------------------|----------------------------------|        
+  * The Query Planner used the Merge semi join by using both the ZigZag join and the Hash based algorithm together on the condition (s.sid =r.sid) which improved the Execution time and the expected cost way more better which made the join in  O(n log n).
+
+  * And It used the Hash indexed scan on bid =103 
 
 
 
-1) given query with B+ trees indices only,
-
-*
-
-3) given query with hash indices only,
-
-*
-
-4) given query with BRIN indices only,
-
-*
-
-5) given query with mixed indices (any mix of your choice).
-
-*
 
 ### Optimized Query
 
 ```
+-- Query 7 view table of reserves with bid = 103
+
+create MATERIALIZED VIEW query_7
+as 
+select r.sid  
+from reserves r 
+where  r.bid =103  ;
+      
+
 select s.sname
 from sailors s
-where
-s.sid in( select r.sid
-from reserves r
-where r.bid = 103 );
+where exists (select R.sid  
+              from query_7 R
+              where s.sid =R.sid);
+
 
 ```
 
@@ -69,35 +156,100 @@ where r.bid = 103 );
 
 * 582 Rows
 
-<img src="./screenshots/Query7/optimizedQuery/result-set-number-of-rows.png" alt="result-set-number-of-rows" width="300px">
-
 #### Report
 
-1) given query without an index
-<img src="./screenshots/Query7/common/no-index.png" alt="no-index" height="400px">
+1) given query without an index :
+
 <img src="./screenshots/Query7/optimizedQuery/no-index/no-index-optimize-physical-plan-graphical-explain.png" height="400px">
 <img src="./screenshots/Query7/optimizedQuery/no-index/no-index-optimize-query-cost.png" height="400px">
 
 ##### Explanation :
-  * First , a Sequential Scan occured on Reserves Table to filter the reserved boats with bid 103 and it costs 0..627 rows,and read through 35000 Rows and 582 Rows are left after the filtration of the where condition.
-  * Second , a Hash Table was built on the run on r.bid of the 582 Rows and it costed 627.50...627.50 rows,this resulted with 1024 Buckets created ,and Memory Usage of 29 KB.
-  * Thirdly , a Sequential Scan occured on Sailors Table to be able to hash each row's sid to the Reserves's buckets to full inner join on the condition and it costed 00..349 rows, and it read through 19000 rows.
-  * Fourthly, a Hash Semi Join occurred to produce the result set of the condition of s.sid = r.sid , and the reason it is Hash Semi Join In the first query, only the r.sid needs to be saved from the reserves into the hash table, because that is the only data needed to implement the semi-join , it costs 634.77 ... 1084.60 rows.
-  * Execution Time : 10.462 ms
+
+   * Metrics :
+  
+      | Execution Time : 8.309 ms | Total Expected Cost : 1746.50 |
+      |----------------------------|-------------------------------|
+
+    * Reason :
+        - This Query Improved in the Execution time and Expected Cost than the Original Query  from 2475.26 to 1746.50 .
+        - Because I used Materialized Views which already made an Intermediate Ready Table with smaller Size that Optimized Query used it which decreased the number of steps needed(Filtration of the table over  r.bid =103 ) for the Query to get Executed .
+        - Because the loops ends faster and exits due to I used the Exist Operator instead of the In Operator so it helped in the intermediate results.
+  
+
+2) given query with B+ trees indices only :
+   
+<img src="./screenshots/Query7/common/b-tree.png" alt="b-tree" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/b-tree/b-tree-optimize-physical-plan-graphical-explain.png" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/b-tree/b-tree-optimize-query-cost.png" height="400px">
+
+##### Explanation :
+
+   * Metrics :
+  
+      | Execution Time : 0.386 ms | Total Expected Cost : 60.37 |
+      |----------------------------|-------------------------------|
+
+* The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
+
+* The Query Planner used the B-tree index because B-Tree is O(Log n) performance with Exact Values .
+  
+* Here it showed the improvement due to for (s.sid=R.sid (it used the index that was built on query_7 view)) condition  of Joining in the Query the Merge Semi Join used index scan using ZigZag and algorithm and these columns where built on it an b-tree index.
+ 
+
+3) given query with hash indices only :
+
+<img src="./screenshots/Query7/common/hash.png" alt="hash" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/hash/hash-optimize-physical-plan-graphical-explain.png" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/hash/hash-optimize-query-cost.png" height="400px">
+
+##### Explanation :
+
+   * Metrics :
+  
+      | Execution Time : 11.828 ms | Total Expected Cost : 715.32 |
+      |----------------------------|-------------------------------|
+
+  * The Hash helped in the performance it decreased the Execution Time(but in the execution time processor was overwhelmed) and Expected Cost .
+  
+  * The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries.
+  
+  * Here it showed the improvement due to for every condition of Joining in the Query the Nested Loop Semi Join using index scan using Hash based algorithm on the condition (sid(from query_7 view)=s.sid) which approximatly maded to be O(n) performance.
+   
+  
+ 
+
+4) given query with BRIN indices only :
+
+<img src="./screenshots/Query7/common/brin.png" alt="brin" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/brin/brin-optimize-physical-plan-graphical-explain.png" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/brin/brin-optimize-query-cost.png" height="400px"> 
+
+##### Explanation :
+
+  * Metrics :
+
+      | Execution Time : 4679 ms | Total Expected Cost : 10004136191.55   |
+      |----------------------------|-------------------------------|
+
+  * Here the BRIN was not used in the original Query Plan settings  (Hashjoin and HashAgg are off) so I've made seqscan=off too.
+  
+  * The Execution Time and Expected Cost became the Worst of all .
+  
+  * This happened because the Query Optimizer didnt used it from the first place due to BRIN  Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
+
+5) given query with mixed indices (any mix of your choice) :
+
+<img src="./screenshots/Query7/common/mix.png" alt="mix" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/mix/mix-optimize-physical-plan-graphical-explain.png" height="400px">
+<img src="./screenshots/Query7/optimizedQuery/mix/mix-optimize-query-cost.png" height="400px"> 
+
+##### Explanation :
+
+  * Metrics :
+
+      | Execution Time : 0.392 ms | Total Expected Cost : 60.37   |
+      |--------------------------|----------------------------------|        
 
 
-2) given query with B+ trees indices only,
+  * The Query Planner used the Merge join by using both the ZigZag join and the Hash based algorithm together which improved the Execution time and the expected cost way more better which made the join in  O(n log n).
 
-*
-
-3) given query with hash indices only,
-
-*
-
-4) given query with BRIN indices only,
-
-*
-
-5) given query with mixed indices (any mix of your choice).
-
-*

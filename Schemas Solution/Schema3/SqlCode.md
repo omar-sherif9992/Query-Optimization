@@ -264,15 +264,12 @@ where exists
 
 
 
-
-
 CREATE INDEX b_sailorsSID ON sailors USING HASH(sid );
 CREATE INDEX b_reservesSID ON reserves  USING HASH(sid );
 CREATE INDEX b_reservesBID ON reserves  USING HASH(bid );
 CREATE INDEX b_boat1 ON boat USING HASH(bid);
-CREATE INDEX b_boat2 ON boat USING HASH(color);
 
-
+CREATE INDEX b_boat2 ON boat USING btree(color );
 
 
 select *
@@ -286,6 +283,7 @@ where tablename = 'sailors' or tablename='reserves' or tablename='boat';
 --  Query 9  (STATISTICS)
 set enable_hashagg = off;
 set enable_hashjoin = off;
+
 explain analyze select  s.sname
 from sailors s, reserves r, boat b
 where

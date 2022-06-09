@@ -2,6 +2,11 @@
 
 * Find the names of sailors who have reserved both a red and a green boat.
 
+## Note !
+  * Flags Hashjoin and HashAgg here where disabled for future after many trials and errors , I've discovered the best way to show the difference interms of the cost and to beat the Postgres Query Optimizer Algorithm to be able to show indices effect and cost differenes .
+  
+ * The Execution time was changing by 10 Ms in each Execution which is considered high and I can't take it as a measurable Metric because it was Linux (Ubuntu) Operating System performance and I took permission from Prof. Wael as do not take it as my main objective I take the Overall Cost and Compare it .
+  
 ### Original Query
 
 ```
@@ -32,7 +37,7 @@ b2.color = 'red');
 
 #### Report
 
-1) given query without an index,
+1) given query without an index :
 
 
 <img src="./screenshots/Query9/common/no-index.png" alt="no-index" height="400px">
@@ -44,13 +49,13 @@ b2.color = 'red');
 ##### Explanation :
   * Metrics :
   
-         | Execution Time : 64.569 ms | Total Expected Cost : 11368.59 |
-         |----------------------------|-------------------------------|
-
-  * Flags Hashjoin and HashAgg here where disabled for future after many trials and errors , I've discovered the best way to show the difference interms of the cost and to beat the Postgres Query Optimizer Algorithm to be able to show indices effect and cost differenes .
+      | Execution Time : 64.569 ms | Total Expected Cost : 11368.59 |
+      |----------------------------|-------------------------------|
 
 
-2) given query with B+ trees indices only,
+
+
+2) given query with B+ trees indices only :
 
 <img src="./screenshots/Query9/common/b-tree.png" alt="b-tree" height="400px" />
 <img src="./screenshots/Query9/normalQuery/b-tree/b-tree-query-physical-cost.png" alt="b-tree" height="400px">
@@ -59,8 +64,8 @@ b2.color = 'red');
 ##### Explanation :
   * Metrics :
 
-         | Execution Time : 7.925 ms | Total Expected Cost : 5557.12 |
-         |----------------------------|-------------------------------|
+      | Execution Time : 7.925 ms | Total Expected Cost : 5557.12 |
+      |----------------------------|-------------------------------|
 
   * The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
 
@@ -68,7 +73,7 @@ b2.color = 'red');
   
   * Here it showed the improvement due to for every condition of Joining in the Query the Merge Join used index scan using ZigZag algorithm .
   
-3) given query with hash indices only,
+3) given query with hash indices only :
 
   <img src="./screenshots/Query9/common/hash.png" alt="hash" height="400px" />
   <img src="./screenshots/Query9/normalQuery/hash/hash-query-physical-cost.png" alt="hash" height="400px"/>
@@ -77,8 +82,8 @@ b2.color = 'red');
  ##### Explanation :
   * Metrics :
 
-         | Execution Time : 12.6 ms | Total Expected Cost : 3052.12 |
-         |----------------------------|-------------------------------|
+      | Execution Time : 12.6 ms | Total Expected Cost : 3052.12 |
+      |----------------------------|-------------------------------|
 
   * The Hash helped in the performance it decreased the Execution Time(but in the execution time processor was overwhelmed) and Expected Cost .
   
@@ -89,7 +94,8 @@ b2.color = 'red');
   * The Where clause condition on the color used Hash too.
 
 
-4) given query with BRIN indices only,
+4) given query with BRIN indices only :
+ 
 <img src="./screenshots/Query9/common/brin.png" alt="brin" height="400px" />
 <img src="./screenshots/Query9/normalQuery/brin/brin-query-physical-cost-1.png" alt="brin" height="400px"/>
 <img src="./screenshots/Query9/normalQuery/brin/brin-query-physical-cost-2.png" alt="brin" height="400px"/>
@@ -99,8 +105,8 @@ b2.color = 'red');
 
   * Metrics :
 
-         | Execution Time : 4679 ms | Total Expected Cost : 2401050935.23  |
-         |----------------------------|-------------------------------|
+      | Execution Time : 4679 ms | Total Expected Cost : 2401050935.23  |
+      |----------------------------|-------------------------------|
 
   * Here the BRIN was not used in the original Query Plan settings  (Hashjoin and HashAgg are off) so I've made seqscan=off too.
   
@@ -108,7 +114,7 @@ b2.color = 'red');
   
   * This happened because the Query Optimizer didnt used it from the place due to BRIN  Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
 
-5) given query with mixed indices (any mix of your choice).
+5) given query with mixed indices (any mix of your choice) :
 
 <img src="./screenshots/Query9/common/mix.png" alt="mix" height="400px" />
 <img src="./screenshots/Query9/normalQuery/mix/mix-query-physical-cost.png" alt="mix" height="400px"/>
@@ -118,8 +124,8 @@ b2.color = 'red');
 
   * Metrics :
 
-         | Execution Time : 4679 ms | Total Expected Cost : 3032.13   |
-         |----------------------------|-------------------------------|
+      | Execution Time : 4679 ms | Total Expected Cost : 3032.13   |
+      |----------------------------|-------------------------------|
   * The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries.
   
   * Here it showed the improvement due to for every condition of Joining in the Query the Nested Loop Join using index scan using Hash based algorithm  which approximatly maded to be O(n) performance.
@@ -169,8 +175,8 @@ where exists
 
   * Metrics :
   
-         | Execution Time : 40.659 ms | Total Expected Cost : 9466.30 |
-         |----------------------------|-------------------------------|
+      | Execution Time : 40.659 ms | Total Expected Cost : 9466.30 |
+      |----------------------------|-------------------------------|
 
   * Same flags is set to all here too.
   * Reason :
@@ -192,8 +198,8 @@ where exists
 
   * Metrics :
   
-         | Execution Time : 4.890 ms | Total Expected Cost : 4605.10|
-         |----------------------------|-------------------------------|
+      | Execution Time : 4.890 ms | Total Expected Cost : 4605.10|
+      |----------------------------|-------------------------------|
 
 * The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
 
@@ -208,10 +214,13 @@ where exists
   <img src="./screenshots/Query9/optimizedQuery/hash/hash-query-physical-cost.png" alt="hash" height="400px"/>
   <img src="./screenshots/Query9/optimizedQuery/hash/hash-normal-physical-plan-graphical-explain.png" alt="hash" height="400px"/>
 
+##### Explanation :
+
   * Metrics :
   
-         | Execution Time : 12.646 ms | Total Expected Cost : 2337.61|
-         |----------------------------|-------------------------------|
+      | Execution Time : 12.646 ms | Total Expected Cost : 2337.61|
+      |----------------------------|-------------------------------|
+
  * The Hash helped in the performance it decreased the Execution Time(but in the execution time processor was overwhelmed + Linux performance) and Expected Cost .
   
   * The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries.
@@ -233,8 +242,8 @@ where exists
 
   * Metrics :
 
-         | Execution Time : 4679 ms | Total Expected Cost : 303415313.52  |
-         |----------------------------|-------------------------------|
+      | Execution Time : 4679 ms | Total Expected Cost : 303415313.52  |
+      |--------------------------|-------------------------------------|
 
   * Here the BRIN was not used in the original Query Plan settings  (Hashjoin and HashAgg are off) so I've made seqscan=off too.
   
@@ -245,16 +254,17 @@ where exists
 5) given query with mixed indices (any mix of your choice)
 
 <img src="./screenshots/Query9/common/mix.png" alt="mix" height="400px" />
-<img src="./screenshots/Query9/optimizedQuery/mix/mix-normal-physical-plan-graphical-explain.png" alt="mix" height="400px"/>
-<img src="./screenshots/Query9/optimizedQuery/mix/mix-query-physical-cost-1.png" alt="mix" height="400px"/>
-<img src="./screenshots/Query9/optimizedQuery/mix/mix-query-physical-cost-2.png" alt="mix" height="400px"/>
+<img src="./screenshots/Query9/optimizedQuery/mix/mix-optimized-physical-plan-graphical-explain.png" alt="mix" height="400px"/>
+<img src="./screenshots/Query9/optimizedQuery/mix/mix-query-physical-cost.png" alt="mix" height="400px"/>
 
 ##### Explanation :
 
   * Metrics :
 
-         | Execution Time : 4679 ms | Total Expected Cost : 2337.61    |
-         |----------------------------|-------------------------------|
+      | Execution Time : 4679 ms | Total Expected Cost : 2337.61    |
+      |--------------------------|----------------------------------|        
+
+
   * The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries.
   
   * Here it showed the improvement due to for every condition of Joining in the Query the Nested Loop Join using index scan using Hash based algorithm  which approximatly maded to be O(n) performance.
