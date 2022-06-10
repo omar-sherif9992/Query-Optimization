@@ -1,379 +1,281 @@
 
--- Database: schema3
+-------Initial Configuration---------
 
--- DROP DATABASE IF EXISTS schema3;
+set enable_hashjoin = off;
+set enable_hashagg = off;
+set enable_bitmapscan = on;
+set enable_seqscan=on;
 
-CREATE DATABASE schema3
-    WITH
-    OWNER = postgres
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'en_US.UTF-8'
-    LC_CTYPE = 'en_US.UTF-8'
-    TABLESPACE = pg_default
-    CONNECTION LIMIT = -1;
-	
-	
-select count(sid)
-from sailors;
+set enable_async_append= off;
+set enable_gathermerge = off;
+set enable_incremental_sort = off;
+set enable_indexscan = on;
+set enable_indexonlyscan = on;
+set enable_material = off;
+set enable_memoize = off;
+set enable_mergejoin = on;
 
-select count(*)
-from boat;
-
-select count(*)
-from reserves;
-
-
-delete from Reserves;
-
-delete from sailors;
-
-delete from Boat;
+set enable_parallel_append = off;
+set enable_parallel_hash = off;
+set enable_partition_pruning = off;
+set enable_partitionwise_join = off;
+set enable_partitionwise_aggregate = off;
+set enable_sort = on;
+set enable_tidscan = off;
 
 
---- Sailors  
--- see what indexes are created for that table
+
+
+-- pk constraints
+ALTER TABLE student DROP CONSTRAINT student_pkey cascade;
+ALTER TABLE section DROP CONSTRAINT section_pkey cascade;
+ALTER TABLE takes DROP CONSTRAINT takes_pkey cascade;
+
+
+TRUNCATE classroom;
+truncate course;
+truncate student;
+truncate department;
+truncate instructor;
+truncate pre_requiste;
+truncate section;
+truncate section_time;
+truncate takes;
+truncate time_slot;
+truncate student;
+
+
+
+
+-- Check Indexes
 select *
 from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat';
-
--- see constraint names
-SELECT con.*
-       FROM pg_catalog.pg_constraint con
-            INNER JOIN pg_catalog.pg_class rel
-                       ON rel.oid = con.conrelid
-            INNER JOIN pg_catalog.pg_namespace nsp
-                       ON nsp.oid = connamespace
-       WHERE  rel.relname = 'sailors'  or rel.relname='reserves' or rel.relname='boat';
-
--- drop constraint over a table
-ALTER TABLE sailors   
-DROP CONSTRAINT sailors_pkey;
-
-ALTER TABLE reserves   
-DROP CONSTRAINT reserves_pkey;
-
-ALTER TABLE reserves   
-DROP CONSTRAINT reserves_sid_fkey;
-
-ALTER TABLE reserves   
-DROP CONSTRAINT reserves_bid_fkey;
-
-ALTER TABLE reserves   
-DROP CONSTRAINT sailors_pkey;
-
-ALTER TABLE boat   
-DROP CONSTRAINT boat_pkey;
-
--- Drop default Index of sailors    
-DROP INDEX   IF EXISTS  sailors_pkey cascade; 
-
-
--- Drop default Index of boats
-select *
-from pg_indexes
-where tablename = 'boats';
-DROP INDEX   IF EXISTS  boat_pkey cascade; 
-
--- Drop default Index of reserves
-
-select *
-from pg_indexes
-where tablename = 'reserves';
-
-
-DROP INDEX   IF EXISTS  reserves_pkey cascade; 
+where tablename='student' or tablename='section' or tablename='takes'
 
 
 
 
 
--- ==================================================== Query 7 ===================================================================
-
--- Find the names of sailors who have reserved boat 103.
---  Query 7 COUNTING RESULT SET , Number Of Rows = 582
+-------------------Original Query
 
 
 
+-- Hash Indices
+CREATE INDEX idx_dept ON student 
+USING hash (department);
+CREATE INDEX idx_id ON student 
+USING hash (id);
+CREATE INDEX idx_sec ON section 
+USING hash (section_id);
+CREATE INDEX idx_takes ON takes 
+USING hash (section_id);
+CREATE INDEX idx_semester ON section
+USING hash (semester);
+CREATE INDEX idx_year ON section
+USING hash (year);
 
 
-select count(s.sname)
-from sailors s
+
+
+
+
+
+
+
+
+--- Btree Indices
+CREATE INDEX idx_dept ON student 
+USING btree (department);
+CREATE INDEX idx_id ON student 
+USING btree (id);
+CREATE INDEX idx_sec ON section 
+USING btree (section_id);
+CREATE INDEX idx_takes ON takes 
+USING btree (section_id);
+CREATE INDEX idx_semester ON section
+USING btree (semester);
+CREATE INDEX idx_year ON section
+USING btree (year);
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop index if exists idx_dept;
+drop index if exists idx_id;
+drop index if exists idx_sec;
+drop index if exists idx_takes;
+drop index if exists idx_semester;
+drop index if exists idx_year;
+
+
+
+
+
+
+--- BRIN Indices
+CREATE INDEX idx_dept ON student 
+USING brin (department);
+CREATE INDEX idx_semester ON section
+USING brin (semester);
+
+
+
+--- Mixed Indices
+CREATE INDEX idx_dept ON student 
+USING btree (department);
+CREATE INDEX idx_id ON student 
+USING btree (id);
+CREATE INDEX idx_sec ON section 
+USING hash (section_id);
+CREATE INDEX idx_takes ON takes 
+USING hash (section_id);
+CREATE INDEX idx_semester ON section
+USING brin (semester);
+CREATE INDEX idx_year ON section
+USING hash (year);
+
+
+
+-- Original query
+explain analyse select *
+from (select *
+from student
 where
-s.sid in( select r.sid
-from reserves r
-where r.bid = 103 );
-
-
-
--- Query 7 optimized  (COUNTING RESULT SET) , Number Of Rows = 582
-
-
-select count(s.sname)
-from sailors s
-where exists (select R.sid  
-              from query_7 R
-              where s.sid =R.sid)
-
-
-
-CREATE INDEX b_sailorsSID ON sailors USING btree(sid );
-CREATE INDEX b_reservesSID ON reserves  USING hash(sid );
-CREATE INDEX b_reservesBID ON reserves  USING hash(bid );
-CREATE INDEX R_reservesBID ON query_7  USING btree(sid );
-
-
-select *
-from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat' or tablename='query_7';
-
-
-
-DROP INDEX   IF EXISTS  b_sailorsSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesBID cascade; 
-DROP INDEX   IF EXISTS   R_reservesBID  cascade; 
-
-
---  Query 7 (STATISTICS)
-set enable_hashagg = off;
-set enable_hashjoin = off;
-set enable_seqscan = on;
-
-
-explain analyze select s.sname
-from sailors s
-where
-s.sid in( select r.sid
-from reserves r
-where r.bid = 103 );
-
-
--- Query 7 optimized  (STATISTICS)
-
--- view of Query 7
-set enable_hashagg = off;
-set enable_hashjoin = off;
-
--- Query 7 view table of reserves with bid =103
-
-create MATERIALIZED VIEW query_7
-as 
-select r.sid  
-from reserves r 
-where  r.bid =103  ;
-
-
-
-explain analyze select s.sname
-from sailors s
-where exists (select R.sid  
-              from query_7 R
-              where s.sid =R.sid);
-
-
-
-
--- ==================================================== Query 8 ===================================================================
-
--- Find the names of sailors who have reserved a red boat.
---  Query 8 (COUNTING RESULT SET) , Number Of Rows = 673
-
-explain analyze select count(s.sname)
-from sailors s
-where s.sid in ( select r.sid
-from reserves r
-where r. bid in (select b.bid
-from boat b
-where b.color = 'red'));
-
--- Query 8 optimized (COUNTING RESULT SET) , Number Of Rows = 673
-
-
- select count(s.sname)
-from sailors s where exists (select * from query_8 r1  where s.sid=r1.sid);
-
-
-
-
-
-
-CREATE INDEX b_sailorsSID ON sailors USING hash(sid );
-CREATE INDEX b_reservesSID ON reserves  USING btree(sid );
-CREATE INDEX b_reservesBID ON reserves  USING btree(bid );
-CREATE INDEX b_boat1 ON boat USING btree(bid );
-CREATE INDEX b_boat2 ON boat USING btree(color );
-
-CREATE INDEX b_query_8 ON query_8 using btree(sid );
-
-
-select *
-from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat' or tablename='query_8';
-
-
-
-DROP INDEX   IF EXISTS  b_sailorsSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesBID cascade; 
-DROP INDEX   IF EXISTS  b_boat1 cascade; 
-DROP INDEX   IF EXISTS  b_boat2 cascade; 
-
-DROP INDEX   IF EXISTS   b_query_8  cascade; 
-
-
-set enable_hashagg = off;
-set enable_hashjoin = off;
-set enable_seqscan = on;
---  Query 8 (STATISTICS)
-
-
-
-explain analyze select s.sname
-from sailors s
-where s.sid in ( select r.sid
-from reserves r
-where r. bid in (select b.bid
-from boat b
-where b.color = 'red'));
-
--- Query 8 optimized (STATISTICS)
-
--- Query 8 view table of reserves sids that have red boats
-create MATERIALIZED VIEW query_8
-as 
-select r1.sid 
- from (select  r.sid 
-       from reserves r 
-       where exists (select * from boat b where r.bid=b.bid  and color='red'  ) ) as r1 ;
-       
-explain analyze select s.sname
-from sailors s where exists (select * from query_8 r1  where s.sid=r1.sid);
-
-
-
-
--- ==================================================== Query 9 ===================================================================
-
--- Find the names of sailors who have reserved both a red and a green boat.
-
---  Query 9 (COUNTING RESULT SET) , Number Of Rows = 177
-
-
-select  count(s.sname)
-from sailors s, reserves r, boat b
-where
-s.sid = r.sid
+department = 'CSEN') as CS1_student
+full outer join
+(select *
+from takes t inner join section s
+on t.section_id = s.section_id
+where semester=1
 and
-r.bid = b.bid
-and
-b.color = 'red'
-and
-s.sid in ( select s2.sid
-from sailors s2, boat b2, reserves r2
-where s2.sid = r2.sid
-and
-r2.bid = b2.bid
-and
-b2.color = 'green');
-
--- Query 9 optimization (COUNTING RESULT SET)  , Number Of Rows = 177
-
-
-
-select *
-from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat';
+year = 2019) as sem1_student
+on CS1_student.id = sem1_student.student_id;
 
 
 
 
-select COUNT(s.sname)
-from sailors s 
-where exists
-        (
-         select rTotal.sid
-            from (select r1.sid
-             from
-                (select r.sid 
-                from reserves r
-                 where  exists
-                    (select bid 
-                     from boat b 
-                     where color = 'green' and r.bid =b.bid )
-                )as r1
-             inner join 
-                (select r.sid 
-                from reserves r
-                 where  exists
-                    (select bid 
-                     from boat b 
-                     where color = 'red' and r.bid =b.bid )
-                ) as r2  
-             on r2.sid = r1.sid  ) as rTotal
-          where rTotal.sid=s.sid
-)
+
+-- Alternative query
+
+CREATE MATERIALIZED VIEW stud
+ AS
+ select * from student
+ where
+ department = 'CSEN'
+ WITH DATA;
+
+
+
+
+ create MATERIALIZED VIEW sec_Take
+ AS
+ select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t inner join section s
+ on t.section_id = s.section_id
+ where s.semester=1 and s.year = 2019
+ WITH DATA;
+
+
+
+
+ CREATE MATERIALIZED VIEW sec_Take2
+ AS
+ select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t right outer join section s
+ on t.section_id = s.section_id
+ where semester=2 and year=2019
+ WITH DATA;
 
 
 
 
 
 
---  Query 9  (STATISTICS)
-set enable_hashagg = off;
-set enable_hashjoin = off;
 
-explain analyze select  s.sname
-from sailors s, reserves r, boat b
-where
-s.sid = r.sid
-and
-r.bid = b.bid
-and
-b.color = 'red'
-and
-s.sid in ( select s2.sid
-from sailors s2, boat b2, reserves r2
-where s2.sid = r2.sid
-and
-r2.bid = b2.bid
-and
-b2.color = 'green');
+ explain analyse
+ Select * From stud left outer join sec_Take ON stud.id=sec_Take.student_id
+ UNION 
+ ( 
+ Select *
+ from stud right outer join
+ (select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t right outer join section s
+ on t.section_id = s.section_id
+ where semester=2 and year=2019) as sec2
+ ON stud.id=sec2.student_id
+ )
+ 
+ 
+
+ 
+ 
+--- Mixed Indices 
+CREATE INDEX idx_takes ON takes 
+USING hash (section_id);
+CREATE INDEX idx_semester ON section
+USING btree (semester);
+ 
+
+ 
+ 
+-- Hash indices 
+ CREATE INDEX idx_dept ON stud 
+USING hash(department);
+CREATE INDEX idx_id ON takes 
+USING hash (student_id);
+
+CREATE INDEX idx_year ON section
+USING hash (year);
+CREATE INDEX idx_sec ON section 
+USING hash (section_id);
+CREATE INDEX idx_semester ON section
+USING hash (semester);
 
 
--- Query 9 optimization (STATISTICS)
--- Find the names of sailors who have reserved both a red and a green boat.
+--Btree
+CREATE INDEX idx_dept ON stud 
+USING btree (department);
+CREATE INDEX idx_id ON student 
+USING btree (id);
+CREATE INDEX idx_sec ON sec_Take 
+USING btree (section_id);
+CREATE INDEX idx_takes ON sec_Take 
+USING btree (section_id);
+
+CREATE INDEX idx_year ON sec_Take
+USING btree (year);
 
 
 
-select *
-from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat';
+--BRIN indices
+CREATE INDEX idx_dept ON stud 
+USING brin (department);
+CREATE INDEX idx_semester ON sec_Take 
+USING brin (semester);
 
-set enable_hashagg = off;
-set enable_hashjoin = off;
 
-explain analyze select s.sname
-from sailors s 
-where exists
-        (
-         select rTotal.sid
-            from (select r1.sid
-             from
-                (select r.sid 
-                from reserves r
-                 where  exists
-                    (select bid 
-                     from boat b 
-                     where color = 'green' and r.bid =b.bid )
-                )as r1
-             inner join 
-                (select r.sid 
-                from reserves r
-                 where  exists
-                    (select bid 
-                     from boat b 
-                     where color = 'red' and r.bid =b.bid )
-                ) as r2  
-             on r2.sid = r1.sid  ) as rTotal
-          where rTotal.sid=s.sid
-)
+
+drop index if exists idx_dept;
+drop index if exists idx_id;
+drop index if exists idx_sec;
+drop index if exists idx_takes;
+drop index if exists idx_semester;
+drop index if exists idx_year;
+
+
+
+
+
+

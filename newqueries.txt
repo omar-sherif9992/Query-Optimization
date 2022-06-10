@@ -6,6 +6,70 @@
 
 -------------------Omar Sherif Ali 49-3324 T-22 ----------------------------------
 
+
+
+
+
+-------------------Query 1 Optimized + materialized view ----------------------------------
+CREATE MATERIALIZED VIEW stud
+ AS
+ select * from student
+ where
+ department = 'CSEN'
+ WITH DATA;
+
+
+
+
+ create MATERIALIZED VIEW sec_Take
+ AS
+ select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t inner join section s
+ on t.section_id = s.section_id
+ where s.semester=1 and s.year = 2019
+ WITH DATA;
+
+
+
+
+ CREATE MATERIALIZED VIEW sec_Take2
+ AS
+ select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t right outer join section s
+ on t.section_id = s.section_id
+ where semester=2 and year=2019
+ WITH DATA;
+
+
+
+
+
+
+
+ explain analyse
+ Select * From stud left outer join sec_Take ON stud.id=sec_Take.student_id
+ UNION 
+ ( 
+ Select *
+ from stud right outer join
+ (select t.student_id,t.section_id,t.grade,s.semester,s.year,s.instructor_id,s.course_id,s.classroom_building,
+ s.classroom_room_no
+ from takes t right outer join section s
+ on t.section_id = s.section_id
+ where semester=2 and year=2019) as sec2
+ ON stud.id=sec2.student_id
+ )
+
+
+
+
+
+
+
+
+
 -------------------Query 7 Optimized + materialized view ----------------------------------
 
 -- Query 7 view table of reserves with bid = 103
