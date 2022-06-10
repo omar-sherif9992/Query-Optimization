@@ -1,0 +1,119 @@
+-------------------Ahmed Hesham 49-5423 T-22 ----------------------------------
+
+
+-------------------Mina Magdy 49-7730 T-24 ------------------------------------
+
+
+-------------------Omar Sherif Ali 49-3324 T-22 ----------------------------------
+
+-------------------Query 7 Optimized + materialized view ----------------------------------
+
+-- Query 7 view table of reserves with bid = 103
+
+create MATERIALIZED VIEW query_7
+as
+select r.sid
+from reserves r
+where  r.bid =103  ;
+
+
+select s.sname
+from sailors s
+where exists (select R.sid
+              from query_7 R
+              where s.sid =R.sid);
+              
+---------------------Query 8 Optimized + materialized view -----------------
+  
+  -- Query 8 view table of reserves sids that have red boats
+
+create MATERIALIZED VIEW query_8
+as
+select r1.sid
+ from (select  r.sid
+       from reserves r
+       where exists (select * from boat b where r.bid=b.bid  and color='red'  ) ) as r1 ;
+
+explain analyze select s.sname
+from sailors s where exists (select * from query_8 r1  where s.sid=r1.sid);
+
+  
+  
+---------------------Query 9 Optimized  -----------------  
+select s.sname
+from sailors s
+where exists
+        (
+         select rTotal.sid
+            from (select r1.sid
+             from
+                (select r.sid
+                from reserves r
+                 where  exists
+                    (select bid
+                     from boat b
+                     where color = 'green' and r.bid =b.bid )
+                )as r1
+             inner join
+                (select r.sid
+                from reserves r
+                 where  exists
+                    (select bid
+                     from boat b
+                     where color = 'red' and r.bid =b.bid )
+                ) as r2
+             on r2.sid = r1.sid  ) as rTotal
+          where rTotal.sid=s.sid
+)       
+             
+-------------------Ahmed Reda el-demery 49-13168 T-18 ----------------------------------
+
+-------------------Query 10 Optimized + materialized view ----------------------------------
+create MATERIALIZED VIEW query_10
+as 
+select mov_id from movie m2 where mov_title ='Annie Hall' WITH data ;
+
+
+ select *
+from actor
+where act_id in( select act_id 
+				from movie_cast m1
+				where exists (select mov_id from query_10 m2 
+							  where m1.mov_id=m2.mov_id  ) );
+-------------------Query 11 Optimized + materialized view ----------------------------------
+
+CREATE MATERIALIZED VIEW query_11
+AS
+ select role
+from movie_cast m1 
+where exists (select mov_id from movie m2 
+where mov_title='Eyes Wide Shut' and m1.mov_id=m2.mov_id)
+
+
+
+
+select dir_fname, dir_lname
+from director
+where dir_id in(
+select dir_id
+from movie_direction
+where mov_id in(
+select mov_id
+from movie_cast
+where role =any( select role from query_11)));
+
+
+-------------------Query 12 Optimized + materialized view ----------------------------------
+CREATE MATERIALIZED VIEW query_12
+AS
+ select dir_id from director
+ where dir_fname='Woddy' and dir_lname='Allen' 
+WITH  DATA;
+
+
+
+ select mov_title
+from movie
+where mov_id in (select m1.mov_id from movie_direction m1 
+				 where exists (select * from query_12
+							   m2 where m1.dir_id=m2.dir_id ))

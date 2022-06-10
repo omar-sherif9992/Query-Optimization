@@ -91,6 +91,11 @@ DROP INDEX   IF EXISTS  reserves_pkey cascade;
 
 -- Find the names of sailors who have reserved boat 103.
 --  Query 7 COUNTING RESULT SET , Number Of Rows = 582
+
+
+
+
+
 select count(s.sname)
 from sailors s
 where
@@ -111,8 +116,29 @@ where exists (select R.sid
 
 
 
+CREATE INDEX b_sailorsSID ON sailors USING btree(sid );
+CREATE INDEX b_reservesSID ON reserves  USING hash(sid );
+CREATE INDEX b_reservesBID ON reserves  USING hash(bid );
+CREATE INDEX R_reservesBID ON query_7  USING btree(sid );
+
+
+select *
+from pg_indexes
+where tablename = 'sailors' or tablename='reserves' or tablename='boat' or tablename='query_7';
+
+
+
+DROP INDEX   IF EXISTS  b_sailorsSID cascade; 
+DROP INDEX   IF EXISTS  b_reservesSID cascade; 
+DROP INDEX   IF EXISTS  b_reservesBID cascade; 
+DROP INDEX   IF EXISTS   R_reservesBID  cascade; 
+
 
 --  Query 7 (STATISTICS)
+set enable_hashagg = off;
+set enable_hashjoin = off;
+set enable_seqscan = on;
+
 
 explain analyze select s.sname
 from sailors s
@@ -124,28 +150,32 @@ where r.bid = 103 );
 
 -- Query 7 optimized  (STATISTICS)
 
-
 -- view of Query 7
+set enable_hashagg = off;
+set enable_hashjoin = off;
+
+-- Query 7 view table of reserves with bid =103
+
 create MATERIALIZED VIEW query_7
 as 
 select r.sid  
 from reserves r 
 where  r.bid =103  ;
-      
+
+
 
 explain analyze select s.sname
 from sailors s
 where exists (select R.sid  
               from query_7 R
-              where s.sid =R.sid)
-
+              where s.sid =R.sid);
 
 
 
 
 -- ==================================================== Query 8 ===================================================================
 
--- Find the names of sailors 'who ha'ue reserved a red boat.
+-- Find the names of sailors who have reserved a red boat.
 --  Query 8 (COUNTING RESULT SET) , Number Of Rows = 673
 
 explain analyze select count(s.sname)
@@ -167,6 +197,33 @@ from sailors s where exists (select * from query_8 r1  where s.sid=r1.sid);
 
 
 
+CREATE INDEX b_sailorsSID ON sailors USING hash(sid );
+CREATE INDEX b_reservesSID ON reserves  USING btree(sid );
+CREATE INDEX b_reservesBID ON reserves  USING btree(bid );
+CREATE INDEX b_boat1 ON boat USING btree(bid );
+CREATE INDEX b_boat2 ON boat USING btree(color );
+
+CREATE INDEX b_query_8 ON query_8 using btree(sid );
+
+
+select *
+from pg_indexes
+where tablename = 'sailors' or tablename='reserves' or tablename='boat' or tablename='query_8';
+
+
+
+DROP INDEX   IF EXISTS  b_sailorsSID cascade; 
+DROP INDEX   IF EXISTS  b_reservesSID cascade; 
+DROP INDEX   IF EXISTS  b_reservesBID cascade; 
+DROP INDEX   IF EXISTS  b_boat1 cascade; 
+DROP INDEX   IF EXISTS  b_boat2 cascade; 
+
+DROP INDEX   IF EXISTS   b_query_8  cascade; 
+
+
+set enable_hashagg = off;
+set enable_hashjoin = off;
+set enable_seqscan = on;
 --  Query 8 (STATISTICS)
 
 
@@ -181,7 +238,7 @@ where b.color = 'red'));
 
 -- Query 8 optimized (STATISTICS)
 
--- view of Query 8 
+-- Query 8 view table of reserves sids that have red boats
 create MATERIALIZED VIEW query_8
 as 
 select r1.sid 
@@ -230,12 +287,6 @@ where tablename = 'sailors' or tablename='reserves' or tablename='boat';
 
 
 
-DROP INDEX   IF EXISTS  b_sailorsSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesSID cascade; 
-DROP INDEX   IF EXISTS  b_reservesBID cascade; 
-DROP INDEX   IF EXISTS  b_boat cascade; 
-
-
 select COUNT(s.sname)
 from sailors s 
 where exists
@@ -262,19 +313,6 @@ where exists
           where rTotal.sid=s.sid
 )
 
-
-
-CREATE INDEX b_sailorsSID ON sailors USING HASH(sid );
-CREATE INDEX b_reservesSID ON reserves  USING HASH(sid );
-CREATE INDEX b_reservesBID ON reserves  USING HASH(bid );
-CREATE INDEX b_boat1 ON boat USING HASH(bid);
-
-CREATE INDEX b_boat2 ON boat USING btree(color );
-
-
-select *
-from pg_indexes
-where tablename = 'sailors' or tablename='reserves' or tablename='boat';
 
 
 
