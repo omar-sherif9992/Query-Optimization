@@ -7,6 +7,8 @@
 - Flags Hashjoin and HashAgg here where disabled for future after many trials and errors , I've discovered the best way to show the difference interms of the cost and to beat the Postgres Query Optimizer Algorithm to be able to show indices effect and cost differenes .
 
 - The Execution time was changing by 10 Ms in each Execution which is considered high and I can't take it as a measurable Metric because it was Linux (Ubuntu) Operating System performance and I took permission from Prof. Wael as do not take it as my main objective I take the Overall Cost and Compare it .
+  
+- I removed the primary constraint to be able to remove the already built in B-tree index to simulate no-inices behavior (I asked Prof.).   
 
 ### Original Query
 
@@ -51,6 +53,7 @@ b2.color = 'red');
 
   | Execution Time : 64.569 ms | Total Expected Cost : 11368.59 |
   | -------------------------- | ------------------------------ |
+  - Here I removed all indices and the performance is not that bad due to Query optimizer and the sizee of the data is in thousands .
 
 2. given query with B+ trees indices only :
 
@@ -107,9 +110,11 @@ b2.color = 'red');
 
 - Here the BRIN was not used in the original Query Plan settings (Hashjoin and HashAgg are off) so I've made seqscan=off too.
 
-- The Execution Time and Expected Cost became the Worst of all .
+- The Execution Time and Expected Cost became the (WORST OF THEM ALL) .
 
 - This happened because the Query Optimizer didnt used it from the place due to BRIN Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
+- Because there where no Aggregation used and was not low selectivity Query so it was not helpful to the performance.
+- The plan performs a (Bit map index scan) on all indices and then to (Bit map heap scan) to select relevant rows .
 
 5. given query with mixed indices (any mix of your choice) :
 
@@ -129,6 +134,9 @@ b2.color = 'red');
 - Here it showed the improvement due to for every condition of Joining in the Query the Nested Loop Join using index scan using Hash based algorithm which approximatly maded to be O(n) performance.
 
 - The Where clause condition on the color used B-tree which is more better as colors are repetable and sorted after each other at the leaves of the b-tree with O(Log n) performance on all at one time little bit better than Hash O(1) but calculation of hashfunction and stored in different buckets .
+
+- The Mix indices  helped in the performance it decreased the Execution Time and Expected Cost (BEST OF THEM ALL).
+
 
 ### Optimized Query
 
@@ -214,7 +222,7 @@ where exists
   | Execution Time : 12.646 ms | Total Expected Cost : 2337.61 |
   | -------------------------- | ----------------------------- |
 
-- The Hash helped in the performance it decreased the Execution Time(but in the execution time processor was overwhelmed + Linux performance) and Expected Cost .
+- The Hash helped in the performance it decreased the Execution Time(but in the execution time processor was overwhelmed + Linux performance) and Expected Cost (BEST OF THEM ALL).
 
 - The Query Planner used the Hash index because Hash is O(1) performance with Exact Values and considered the best for exact values queries.
 
@@ -237,9 +245,13 @@ where exists
 
 - Here the BRIN was not used in the original Query Plan settings (Hashjoin and HashAgg are off) so I've made seqscan=off too.
 
-- The Execution Time and Expected Cost became the Worst of all .
+- The Execution Time and Expected Cost became the (WORST OF THEM ALL) .
 
 - This happened because the Query Optimizer didnt used it from the place due to BRIN Usage here was not suitable so we have used it to .
+- Because there where no Aggregation used and was not low selectivity Query so it was not helpful to the performance.
+- The plan performs a (Bit map index scan) on all indices and then to (Bit map heap scan) to select relevant rows .
+
+
 
 5. given query with mixed indices (any mix of your choice)
 
@@ -259,3 +271,5 @@ where exists
 - Here it showed the improvement due to for every condition of Joining in the Query the Nested Loop Join using index scan using Hash based algorithm which approximatly maded to be O(n) performance.
 
 - The Where clause condition on the color used B-tree which is more better as colors are repetable and sorted after each other at the leaves of the b-tree with O(Log n) performance on all at one time little bit better than Hash O(1) but calculation of hashfunction and stored in different buckets .
+
+- The Mix indices  helped in the performance it decreased the Execution Time and Expected Cost (BEST OF THEM ALL).

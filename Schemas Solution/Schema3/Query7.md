@@ -8,6 +8,8 @@
 
 - The Execution time was changing by 10 Ms in each Execution which is considered high and I can't take it as a measurable Metric because it was Linux (Ubuntu) Operating System performance and I took permission from Prof. Wael as do not take it as my main objective I take the Overall Cost and Compare it .
 
+- I removed the primary constraint to be able to remove the already built in B-tree index to simulate no-inices behavior (I asked Prof.). 
+  
 ### Original Query
 
 ```
@@ -39,6 +41,7 @@ where r.bid = 103 );
 
   | Execution Time : 15.430 ms | Total Expected Cost : 2457.26 |
   | -------------------------- | ----------------------------- |
+  - Here I removed all indices and the performance is not that bad due to Query optimizer and the sizee of the data is in thousands .
 
 2. given query with B+ trees indices only :
 
@@ -53,7 +56,7 @@ where r.bid = 103 );
   | Execution Time : 0.449 ms | Total Expected Cost : 956.28 |
   | ------------------------- | ---------------------------- |
 
-- The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
+- The B-tree helped in the performance it decreased the Execution Time and Expected Cost (BEST OF THEM ALL).
 
 - The Query Planner used the B-tree index because B-Tree is O(Log n) performance with Exact Values .
 - Here it showed the improvement due to for every condition of Joining in the Query the Merge Join used index scan using ZigZag algorithm .
@@ -94,9 +97,12 @@ where r.bid = 103 );
 
 - Here the BRIN was not used in the original Query Plan settings (Hashjoin and HashAgg are off) so I've made seqscan=off too.
 
-- The Execution Time and Expected Cost became the Worst of all .
+- The Execution Time and Expected Cost became the (WORST OF THEM ALL) .
 
 - This happened because the Query Optimizer didnt used it from the first place due to BRIN Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
+- Because there where no Aggregation used and was not low selectivity Query so it was not helpful to the performance.
+- The plan performs a (Bit map index scan) on all indices and then to (Bit map heap scan) to select relevant rows .
+
 
 5. given query with mixed indices (any mix of your choice) :
 
@@ -113,7 +119,8 @@ where r.bid = 103 );
 
 - The Query Planner used the Merge semi join by using both the ZigZag join and the Hash based algorithm together on the condition (s.sid =r.sid) which improved the Execution time and the expected cost way more better which made the join in O(n log n).
 
-- And It used the Hash indexed scan on bid =103
+- And It used the Hash indexed scan on bid =103.
+- The Mix indices  helped in the performance it decreased the Execution Time and Expected Cost .
 
 ### Optimized Query
 
@@ -172,10 +179,11 @@ where exists (select R.sid
   | Execution Time : 0.386 ms | Total Expected Cost : 60.37 |
   | ------------------------- | --------------------------- |
 
-- The B-tree helped in the performance it decreased the Execution Time and Expected Cost .
+- The B-tree helped in the performance it decreased the Execution Time and Expected Cost (BEST OF THEM ALL).
 
 - The Query Planner used the B-tree index because B-Tree is O(Log n) performance with Exact Values .
 - Here it showed the improvement due to for (s.sid=R.sid (it used the index that was built on query_7 view)) condition of Joining in the Query the Merge Semi Join used index scan using ZigZag and algorithm and these columns where built on it an b-tree index.
+
 
 3. given query with hash indices only :
 
@@ -206,14 +214,17 @@ where exists (select R.sid
 
 - Metrics :
 
-  | Execution Time : 4679 ms | Total Expected Cost : 10004136191.55 |
+  | Execution Time : 816.981 ms | Total Expected Cost : 10004136191.55 |
   | ------------------------ | ------------------------------------ |
 
 - Here the BRIN was not used in the original Query Plan settings (Hashjoin and HashAgg are off) so I've made seqscan=off too.
 
-- The Execution Time and Expected Cost became the Worst of all .
+- The Execution Time and Expected Cost became the (WORST OF THEM ALL).
 
 - This happened because the Query Optimizer didnt used it from the first place due to BRIN Usage here was not suitable so we have used it to simulate seqscan behaviour only we traveresed it all and followed all its pointers so it is worst index to use in this case.
+- Because there where no Aggregation used and was not low selectivity Query so it was not helpful to the performance.
+- The plan performs a (Bit map index scan) on all indices and then to (Bit map heap scan) to select relevant rows .
+
 
 5. given query with mixed indices (any mix of your choice) :
 
@@ -228,4 +239,6 @@ where exists (select R.sid
   | Execution Time : 0.392 ms | Total Expected Cost : 60.37 |
   | ------------------------- | --------------------------- |
 
-- The Query Planner used the Merge join by using both the ZigZag join and the Hash based algorithm together which improved the Execution time and the expected cost way more better which made the join in O(n log n).
+- The Query Planner used the Merge join by using both the ZigZag join and the Hash based algorithm together on condition(s.sid =R.sid) which improved the Execution time and the expected cost way more better which made the join in O(n log n) .
+
+- The Mix indices  helped in the performance it decreased the Execution Time and Expected Cost (BEST OF THEM ALL).
